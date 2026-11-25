@@ -1,0 +1,43 @@
+Package: ethogramR
+Type: Package
+Title: Behavioural Diversity, Enclosure Use and Social Networks from Scan
+    and Focal Data
+Version: 0.1.2
+Authors@R: person("Sitendu", "Goswami", role = c("aut", "cre", "cph"),
+    email = "sitenduvantara@gmail.com")
+Description: Analyses behaviour observations of captive animal groups collected
+    by scan (instantaneous) or focal (continuous) sampling, including the
+    comma-separated export of the 'Ethogram' observation app. Given an ethogram,
+    enclosure zones and the observation records, it calculates activity
+    budgets; species-typical behavioural diversity (richness, Shannon-Wiener
+    diversity, evenness, Simpson diversity, the share of the repertoire
+    expressed and similarity to a wild reference budget) with bootstrap
+    confidence intervals, following Miller et al. (2020)
+    <doi:10.3390/ani10071211>; the spread of participation index for enclosure
+    use with equal zones or unequal zones (Plowman 2003
+    <doi:10.1016/S0168-1591(03)00142-4>) and zone electivity; and social
+    networks built from simple ratio or half-weight association indices
+    (Hoppitt and Farine 2018 <doi:10.1016/j.anbehav.2017.08.029>) or directed
+    interaction matrices, with node and network metrics computed with 'igraph'.
+    All results are returned as data frames that can be plotted directly with
+    'ggplot2'.
+License: MIT + file LICENSE
+URL: https://github.com/YOUR-GITHUB-USERNAME/ethogramR
+BugReports: https://github.com/YOUR-GITHUB-USERNAME/ethogramR/issues
+Encoding: UTF-8
+Depends: R (>= 4.0.0)
+Imports:
+    igraph (>= 1.3.0),
+    stats,
+    utils,
+    graphics,
+    grDevices
+Suggests:
+    ggplot2,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+LazyData: true
+RoxygenNote: 7.3.1

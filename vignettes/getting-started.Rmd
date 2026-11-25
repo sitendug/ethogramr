@@ -1,0 +1,157 @@
+---
+title: "Getting started with ethogramR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with ethogramR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 6, fig.height = 5)
+```
+
+```{r}
+library(ethogramR)
+```
+
+ethogramR takes four inputs:
+
+| Input | What it holds | Function |
+|---|---|---|
+| Observations | Scan and/or focal records (Ethogram app CSV layout) | `read_ethogram_csv()`, `as_obs()` |
+| Ethogram | Behaviours, `type` (state/event), `class`, `directed`, `species_typical`, optional wild `reference` budget | `as_ethogram()` |
+| Zones | `zone`, `area` (and `enclosure` if more than one) | `as_zones()` |
+| Animals (optional) | `animal` plus attributes such as sex and age class | — |
+
+## 1. Read the data
+
+An Ethogram app export can be read directly. One file can hold scan and focal
+sessions, so the analysis functions then ask which sampling method to use.
+
+```{r}
+f <- system.file("extdata", "ethogram_export_example.csv", package = "ethogramR")
+obs <- read_ethogram_csv(f)
+table(obs$sampling, obs$record_type)
+scans <- obs[obs$sampling == "scan", ]
+focal <- obs[obs$sampling == "focal", ]
+```
+
+Your own data in other layouts can be renamed on import, e.g.
+`read_ethogram_csv("my.csv", map = c(animal = "ID", behaviour = "Behav", zone = "Area"))`.
+
+The ethogram and zones are small tables you write once per group:
+
+```{r}
+example_ethogram
+example_zones
+```
+
+`species_typical = FALSE` marks behaviours (e.g. pacing) that are left out of
+diversity and reported as `prop_abnormal`. If the column is missing, any
+behaviour whose name or class contains "abnormal" or "stereotyp" is treated as
+not species-typical.
+
+## 2. Activity budgets
+
+```{r}
+b <- behaviour_budget(scans, example_ethogram)
+head(b)
+```
+
+For focal data, budgets are proportions of in-sight time
+(`measure = "duration"`) or bout counts (`measure = "frequency"`);
+`event_rates()` gives events per observed hour.
+
+## 3. Species-typical behavioural diversity
+
+```{r}
+div <- behaviour_diversity(scans, example_ethogram, n_boot = 500, seed = 1)
+div[c("animal", "richness", "prop_repertoire", "shannon", "shannon_lo", "shannon_hi",
+      "evenness", "simpson", "prop_abnormal", "similarity_ref")]
+```
+
+* `richness` and `prop_repertoire`: how many species-typical behaviours were
+  seen, and the share of the ethogram's repertoire this represents.
+* `shannon` (H'), `evenness` (Pielou's J'), `simpson`: diversity and evenness
+  of the budget.
+* `evenness_repertoire`: H' / ln(repertoire size), which also penalises
+  behaviours that never appear.
+* `similarity_ref`: overlap with the wild `reference` budget (1 = identical).
+
+Group-level values pool all animals:
+
+```{r}
+behaviour_diversity(focal, example_ethogram, by = NULL)
+```
+
+## 4. Enclosure use: spread of participation index
+
+SPI uses the unequal-zone formula of Plowman (2003) when zone areas are given,
+and Dickens' (1955) formula for equal zones. 0 means use in proportion to zone
+size; 1 means only one zone was used.
+
+```{r}
+spi(scans, example_zones)
+spi(focal, example_zones, by = NULL)   # focal: seconds in each zone
+```
+
+`zone_use()` shows which zones drive the score (Ivlev and Jacobs electivity:
+positive = used more than its size predicts):
+
+```{r}
+zone_use(scans, example_zones, by = NULL)[c("zone", "observed", "expected", "ivlev", "jacobs")]
+```
+
+## 5. Social networks
+
+**Association network** from co-occurrence in scans, by zone or by distance on
+the enclosure map (app x/y are proportions, so give the map size in metres):
+
+```{r}
+am <- association_matrix(scans, method = "zone", index = "SRI")
+am
+am_d <- association_matrix(scans, method = "distance", max_dist = 10, map_size = c(60, 40))
+```
+
+For focal data, every animal's state is sampled every `focal_step` seconds
+(`focal_to_scans()`) before the index is computed.
+
+**Interaction network** from directed behaviours (actor in rows, recipient in
+columns):
+
+```{r}
+im <- interaction_matrix(focal, example_ethogram)          # all directed behaviours
+groom <- interaction_matrix(focal, behaviours = "Allogroom", measure = "duration")
+groom
+```
+
+`rate = TRUE` divides by each actor's in-sight observation effort.
+
+**Network metrics** and a plot:
+
+```{r}
+net <- network_metrics(am, attributes = example_animals)
+net$network
+net$nodes
+plot_network(net, colour_by = "sex")
+```
+
+```{r}
+plot_network(network_metrics(im, attributes = example_animals), colour_by = "community")
+```
+
+## 6. Everything at once
+
+```{r}
+res <- analyse_group(scans, example_ethogram, example_zones, animals = example_animals)
+res
+```
+
+## References
+
+* Dickens, M. (1955). Speech Monographs 22: 28-31.
+* Plowman, A. B. (2003). Applied Animal Behaviour Science 83: 331-336.
+* Cairns, S. J. & Schwager, S. J. (1987). Animal Behaviour 35: 1454-1469.
+* Hoppitt, W. J. E. & Farine, D. R. (2018). Animal Behaviour 136: 227-238.
+* Miller, L. J. et al. (2020). Animals 10: 1211.

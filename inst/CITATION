@@ -1,0 +1,13 @@
+bibentry(
+  bibtype = "Manual",
+  title = "ethogramR: Behavioural Diversity, Enclosure Use and Social Networks from Scan and Focal Data",
+  author = person("Sitendu", "Goswami"),
+  year = "2026",
+  note = paste("R package version", utils::packageVersion("ethogramR")),
+  url = "https://github.com/YOUR-GITHUB-USERNAME/ethogramR",
+  textVersion = paste0(
+    "Goswami, S. (2026). ethogramR: Behavioural Diversity, Enclosure Use and ",
+    "Social Networks from Scan and Focal Data. R package version ",
+    utils::packageVersion("ethogramR"), ". ",
+    "https://github.com/YOUR-GITHUB-USERNAME/ethogramR")
+)

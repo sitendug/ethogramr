@@ -1,0 +1,12 @@
+"behaviour","code","type","class","directed","species_typical","reference"
+"Rest","RE","state","maintenance",FALSE,TRUE,0.35
+"Locomote","LO","state","locomotion",FALSE,TRUE,0.15
+"Forage","FO","state","foraging",FALSE,TRUE,0.25
+"Feed","FE","state","foraging",FALSE,TRUE,0.08
+"Vigilant","VI","state","vigilance",FALSE,TRUE,0.07
+"Allogroom","AG","state","social",TRUE,TRUE,0.07
+"Play","PL","state","social",TRUE,TRUE,0.03
+"Enrichment use","EN","state","enrichment",FALSE,TRUE,
+"Pacing","PA","state","abnormal",FALSE,FALSE,0
+"Vocalise","VO","event","communication",FALSE,TRUE,
+"Displace","DI","event","agonistic",TRUE,TRUE,
