@@ -91,3 +91,5 @@ citation("ethogramR")
 ## Licence
 
 MIT © Sitendu Goswami
+## DOI
+https://doi.org/10.5281/zenodo.24544156
