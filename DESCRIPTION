@@ -22,7 +22,8 @@ Description: Analyses behaviour observations of captive animal groups collected
     All results are returned as data frames that can be plotted directly with
     'ggplot2'.
 License: MIT + file LICENSE
-URL: https://github.com/YOUR-GITHUB-USERNAME/ethogramR
+URL: https://github.com/YOUR-GITHUB-USERNAME/ethogramR,
+    https://YOUR-GITHUB-USERNAME.github.io/ethogramR/
 BugReports: https://github.com/YOUR-GITHUB-USERNAME/ethogramR/issues
 Encoding: UTF-8
 Depends: R (>= 4.0.0)

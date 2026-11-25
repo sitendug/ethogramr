@@ -1,3 +1,9 @@
+# ethogramR (development version)
+
+* pkgdown website with a hex logo, a grouped function reference and a new
+  article, "Plotting results with ggplot2". GitHub Actions rebuilds and
+  publishes it to GitHub Pages on every push.
+
 # ethogramR 0.1.2
 
 * Functions that take a `seed` (`behaviour_diversity()`, `network_layout()`,

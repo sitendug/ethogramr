@@ -1,4 +1,4 @@
-# ethogramR
+# ethogramR <img src="man/figures/logo.png" align="right" height="139" alt="ethogramR logo" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/YOUR-GITHUB-USERNAME/ethogramR/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/YOUR-GITHUB-USERNAME/ethogramR/actions/workflows/R-CMD-check.yaml)
@@ -21,6 +21,8 @@ It reads the CSV export of the **Ethogram** observation app directly, and any
 other data once columns are renamed with `map =`. All results are data frames
 that go straight into **ggplot2**; `matrix_to_edges()` and `network_layout()`
 turn networks into tables for `geom_tile()` and `geom_segment()`.
+
+Website and documentation: <https://YOUR-GITHUB-USERNAME.github.io/ethogramR/>
 
 ## Installation
 
@@ -70,9 +72,11 @@ net$nodes
 plot_network(net, colour_by = "sex")
 ```
 
-The full workflow is in `vignette("getting-started", package = "ethogramR")`,
-and `analysis_with_ggplot.R` in the sample data folder draws ten example
-plots.
+The full workflow is in the
+[Getting started](https://YOUR-GITHUB-USERNAME.github.io/ethogramR/articles/getting-started.html)
+article, and
+[Plotting results with ggplot2](https://YOUR-GITHUB-USERNAME.github.io/ethogramR/articles/plotting-with-ggplot2.html)
+shows ten example plots.
 
 ## Citation
 
@@ -91,5 +95,3 @@ citation("ethogramR")
 ## Licence
 
 MIT © Sitendu Goswami
-## DOI
-https://doi.org/10.5281/zenodo.24544156

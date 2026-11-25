@@ -1,0 +1,86 @@
+url: https://YOUR-GITHUB-USERNAME.github.io/ethogramR/
+
+template:
+  bootstrap: 5
+  bslib:
+    primary: "#16324f"
+    link-color: "#1f6aa5"
+    navbar-bg: "#16324f"
+    base_font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
+    code_font: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace
+
+home:
+  title: "ethogramR: behavioural diversity, enclosure use and social networks"
+  description: >
+    R package for zoo and captive animal behaviour: species-typical
+    behavioural diversity, spread of participation index and social networks
+    from scan and focal data.
+
+navbar:
+  bg: primary
+  type: dark
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+      - text: Getting started
+        href: articles/getting-started.html
+      - text: Plotting results with ggplot2
+        href: articles/plotting-with-ggplot2.html
+
+reference:
+- title: Import data
+  desc: >
+    Read Ethogram app exports or your own data, and standardise the
+    ethogram and zone tables.
+  contents:
+  - read_ethogram_csv
+  - as_obs
+  - as_ethogram
+  - as_zones
+  - focal_to_scans
+- title: Activity budgets
+  contents:
+  - behaviour_budget
+  - event_rates
+- title: Behavioural diversity
+  contents:
+  - behaviour_diversity
+- title: Enclosure use
+  desc: Spread of participation index and zone electivity.
+  contents:
+  - spi
+  - zone_use
+- title: Social networks
+  contents:
+  - association_matrix
+  - interaction_matrix
+  - symmetrise
+  - network_metrics
+  - plot_network
+- title: Plotting helpers
+  desc: Turn networks into data frames for ggplot2.
+  contents:
+  - matrix_to_edges
+  - network_layout
+- title: Whole-group analysis
+  contents:
+  - analyse_group
+- title: Example data
+  contents:
+  - example_data
+
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - getting-started
+  - articles/plotting-with-ggplot2
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with

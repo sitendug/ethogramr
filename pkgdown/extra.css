@@ -1,0 +1,4 @@
+/* Readable version number and search box on the dark navbar */
+.navbar .nav-text.text-muted { color: rgba(255, 255, 255, 0.65) !important; }
+.navbar #search-input { background-color: #ffffff; color: #16324f; border: none; }
+.navbar #search-input::placeholder { color: #6c7a89; }
