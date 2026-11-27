@@ -16,6 +16,9 @@ behaviour_diversity(
   n_boot = 0,
   boot_unit = c("sample", "session"),
   conf = 0.95,
+  rarefy = NULL,
+  rarefy_within = NULL,
+  n_rare = 500,
   seed = NULL
 )
 }
@@ -46,8 +49,15 @@ wild activity budget). Overrides the ethogram's `reference` column.}
 
 \item{conf}{Confidence level.}
 
-\item{seed}{Optional random seed for the bootstrap. The user's random
-number state is restored afterwards.}
+\item{rarefy}{`NULL` (no rarefaction), a sample size, or `"min"`.}
+
+\item{rarefy_within}{Columns within which `"min"` is taken (default: all
+groups).}
+
+\item{n_rare}{Number of random subsamples for the rarefied \eqn{H'}.}
+
+\item{seed}{Optional random seed for the bootstrap and rarefaction. The
+user's random number state is restored afterwards.}
 }
 \value{
 A data frame with one row per group.
@@ -80,6 +90,27 @@ Indices, with \eqn{p_i} the proportion of scans (or time) in behaviour
     budgets; 1 - Bray-Curtis dissimilarity) and \eqn{H'} of the reference.}
 }
 
+**Rarefaction.** \eqn{H'} and richness grow with sample size, so groups
+observed for different numbers of scans are not directly comparable
+(Brereton & Fernandez 2022). With `rarefy`, every group is also
+summarised at a common sample size \eqn{n}:
+\describe{
+  \item{rarefy_n}{The sample size used.}
+  \item{richness_rare}{Expected number of behaviours in \eqn{n} records
+    drawn without replacement, calculated exactly (Hurlbert 1971):
+    \eqn{\sum_i [1 - \binom{N - N_i}{n} / \binom{N}{n}]}.}
+  \item{shannon_rare, shannon_rare_sd}{Mean and standard deviation of
+    \eqn{H'} over `n_rare` random subsamples of \eqn{n} records.}
+}
+`rarefy = "min"` uses the smallest group size; with `rarefy_within`, the
+smallest size among groups that share those columns, e.g. the smaller of an
+animal's pre- and post-enrichment samples with
+`by = c("animal", "period"), rarefy_within = "animal"`. Groups smaller than
+\eqn{n} get `NA`. Rarefaction works on counted records (scans, or focal
+bouts and events with `measure = "frequency"`), not on durations. Each
+group is subsampled from `seed` independently, so a group's value does not
+change when other groups are added.
+
 Confidence intervals (`n_boot > 0`) are percentile bootstrap intervals,
 resampling scans (scan data) or bouts (focal data) with replacement within
 each group. Successive samples are autocorrelated, so treat these as
@@ -87,6 +118,8 @@ approximate; resampling sessions is more conservative when there are many.
 }
 \examples{
 behaviour_diversity(example_scans, example_ethogram)
+# every animal compared at the smallest animal's sample size
+behaviour_diversity(example_scans, example_ethogram, rarefy = "min", seed = 1)
 behaviour_diversity(example_focal, example_ethogram, by = NULL)
 }
 \references{
@@ -99,4 +132,11 @@ Shannon, C. E. (1948). A mathematical theory of communication.
   Miller, L. J., Vicino, G. A., Sheftel, J. & Lauderdale, L. K. (2020).
   Behavioral diversity as a potential indicator of positive animal welfare.
   Animals 10: 1211. \doi{10.3390/ani10071211}
+
+  Hurlbert, S. H. (1971). The nonconcept of species diversity: a critique
+  and alternative parameters. Ecology 52: 577-586. \doi{10.2307/1934145}
+
+  Brereton, J. E. & Fernandez, E. J. (2022). Investigating unused tools for
+  the animal behavioral diversity toolkit. Animals 12: 2984.
+  \doi{10.3390/ani12212984}
 }

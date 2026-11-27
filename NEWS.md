@@ -1,8 +1,19 @@
-# ethogramR (development version)
+# ethogramR 0.1.3
+
+* `behaviour_diversity()` gains rarefaction: `rarefy` (a sample size or
+  `"min"`), `rarefy_within` (e.g. compare each animal's periods at the smaller
+  of its two sample sizes) and `n_rare`. New columns `rarefy_n`,
+  `richness_rare` (exact expected richness, Hurlbert 1971), `shannon_rare` and
+  `shannon_rare_sd` (mean and SD of H' over random subsamples).
+* New `rarefaction_curve()` returns expected richness and H' across sample
+  sizes, to check whether sampling captured the repertoire.
+* Rarefaction is refused for durations, which are not counted records.
 
 * pkgdown website with a hex logo, a grouped function reference and a new
   article, "Plotting results with ggplot2". GitHub Actions rebuilds and
   publishes it to GitHub Pages on every push.
+* JOSS paper draft in `paper/`, a workflow that builds its PDF, and
+  CONTRIBUTING.md.
 
 # ethogramR 0.1.2
 

@@ -12,7 +12,7 @@ enclosure zones, and it calculates:
 | Question | Functions |
 |---|---|
 | How do animals spend their time? | `behaviour_budget()`, `event_rates()` |
-| How diverse is their species-typical behaviour? | `behaviour_diversity()`: richness, share of repertoire expressed, Shannon H′, Pielou J′, Simpson, proportion of abnormal behaviour, similarity to a wild reference budget, bootstrap CIs |
+| How diverse is their species-typical behaviour? | `behaviour_diversity()`: richness, share of repertoire expressed, Shannon H′, Pielou J′, Simpson, proportion of abnormal behaviour, similarity to a wild reference budget, bootstrap CIs, rarefaction to equal sample sizes; `rarefaction_curve()` |
 | How evenly do they use the enclosure? | `spi()`: spread of participation index (Dickens 1955; Plowman 2003 for unequal zones); `zone_use()`: Ivlev and Jacobs electivity |
 | Who associates and interacts with whom? | `association_matrix()` (SRI / HWI from shared zone or map distance), `interaction_matrix()` (directed counts, durations, rates), `network_metrics()`, `plot_network()` |
 | All of the above | `analyse_group()` |
@@ -78,6 +78,11 @@ article, and
 [Plotting results with ggplot2](https://YOUR-GITHUB-USERNAME.github.io/ethogramR/articles/plotting-with-ggplot2.html)
 shows ten example plots.
 
+## Contributing
+
+Bug reports, questions and pull requests are welcome; see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Citation
 
 ```r
@@ -95,6 +100,3 @@ citation("ethogramR")
 ## Licence
 
 MIT © Sitendu Goswami
-
-## DOI
-https://doi.org/10.5281/zenodo.24544156

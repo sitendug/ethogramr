@@ -49,6 +49,7 @@ reference:
 - title: Behavioural diversity
   contents:
   - behaviour_diversity
+  - rarefaction_curve
 - title: Enclosure use
   desc: Spread of participation index and zone electivity.
   contents:

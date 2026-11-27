@@ -85,6 +85,30 @@ Group-level values pool all animals:
 behaviour_diversity(focal, example_ethogram, by = NULL)
 ```
 
+### Comparing groups observed for different lengths of time
+
+Richness and $H'$ both grow with the number of scans, so an animal watched for
+longer can look more diverse. `rarefy` adds values for every group at a
+common sample size: `richness_rare` is the exact expected richness and
+`shannon_rare` the mean $H'$ over random subsamples.
+
+```{r}
+rd <- behaviour_diversity(scans, example_ethogram, rarefy = "min", n_rare = 200, seed = 1)
+rd[c("animal", "N", "rarefy_n", "richness", "richness_rare", "shannon", "shannon_rare")]
+```
+
+For before/after designs, `by = c("animal", "period"), rarefy = "min",
+rarefy_within = "animal"` compares each animal's two periods at the smaller of
+its two sample sizes. `rarefaction_curve()` shows whether sampling was long
+enough: a curve that is still rising at the observed size means the
+repertoire was not fully captured.
+
+```{r, fig.height = 3.5}
+rc <- rarefaction_curve(scans, example_ethogram, steps = 15, n_rare = 50, seed = 1)
+plot(richness ~ n, data = rc, type = "n", xlab = "Scans", ylab = "Expected richness")
+for (a in unique(rc$animal)) lines(richness ~ n, data = rc[rc$animal == a, ])
+```
+
 ## 4. Enclosure use: spread of participation index
 
 SPI uses the unequal-zone formula of Plowman (2003) when zone areas are given,

@@ -127,3 +127,57 @@ test_that("matrix_to_edges and network_layout return plotting tables", {
   expect_true(all(c("x", "y", "xend", "yend") %in% names(lay$edges)))
   expect_true(all(c("x", "y", "strength") %in% names(lay$nodes)))
 })
+
+test_that("exact rarefied richness matches Hurlbert's formula", {
+  # counts 3 A, 1 B ; n = 2: E[S] = (1 - C(1,2)/C(4,2)) + (1 - C(3,2)/C(4,2)) = 1 + (1 - 3/6) = 1.5
+  expect_equal(ethogramR:::.rare_richness(c(A = 3, B = 1), 2), 1.5)
+  expect_equal(ethogramR:::.rare_richness(c(A = 3, B = 1), 4), 2)
+  expect_true(is.na(ethogramR:::.rare_richness(c(A = 3, B = 1), 5)))
+})
+
+test_that("rarefying to the full sample size returns the observed values", {
+  d <- behaviour_diversity(example_scans, example_ethogram, rarefy = "min", n_rare = 5, seed = 1)
+  full <- d$N == d$rarefy_n
+  expect_true(any(full))
+  expect_equal(d$shannon_rare[full], d$shannon[full])
+  expect_equal(d$richness_rare[full], d$richness[full])
+  expect_equal(d$shannon_rare_sd[full], 0)
+  expect_true(all(d$rarefy_n == min(d$N)))
+})
+
+test_that("rarefy_within takes the minimum within each animal", {
+  o <- example_scans
+  o$period <- ifelse(o$session %in% c("Scan 01", "Scan 02"), "Pre", "Post")
+  d <- behaviour_diversity(o, example_ethogram, by = c("animal", "period"),
+                           rarefy = "min", rarefy_within = "animal", n_rare = 5, seed = 1)
+  mins <- tapply(d$N, d$animal, min)
+  expect_equal(d$rarefy_n, as.numeric(mins[d$animal]))
+})
+
+test_that("rarefaction is reproducible, order-independent and restores the RNG", {
+  set.seed(9); before <- .Random.seed
+  a <- behaviour_diversity(example_scans, example_ethogram, rarefy = 50, n_rare = 20, seed = 3)
+  expect_identical(.Random.seed, before)
+  b <- behaviour_diversity(example_scans[example_scans$animal == "F1", ], example_ethogram,
+                           rarefy = 50, n_rare = 20, seed = 3)
+  expect_equal(a$shannon_rare[a$animal == "F1"], b$shannon_rare)
+  expect_true(all(a$richness_rare <= a$richness + 1e-12))
+})
+
+test_that("durations cannot be rarefied and too-small groups give NA", {
+  expect_error(behaviour_diversity(example_focal, example_ethogram, rarefy = 10), "counted records")
+  expect_warning(d <- behaviour_diversity(example_scans, example_ethogram, rarefy = 1e6, n_rare = 2),
+                 "fewer records than the rarefaction size")
+  expect_true(all(is.na(d$shannon_rare)))
+  f <- behaviour_diversity(example_focal, example_ethogram, measure = "frequency",
+                           rarefy = "min", n_rare = 5, seed = 1)
+  expect_true(all(!is.na(f$shannon_rare)))
+})
+
+test_that("rarefaction_curve rises to the observed richness", {
+  rc <- rarefaction_curve(example_scans, example_ethogram, steps = 8, n_rare = 10, seed = 1)
+  last <- rc[rc$observed, ]
+  d <- behaviour_diversity(example_scans, example_ethogram)
+  expect_equal(last$richness[order(last$animal)], d$richness[order(d$animal)])
+  expect_true(all(tapply(rc$richness, rc$animal, function(r) all(diff(r) >= -1e-9))))
+})

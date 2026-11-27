@@ -105,6 +105,37 @@ behaviour_budget <- function(obs, ethogram = NULL, by = "animal",
     inv_simpson = if (S > 0) 1 / sum(p^2) else NA_real_)
 }
 
+# Expected richness in a random subsample of n records, without replacement
+# (Hurlbert 1971), from counts per behaviour
+.rare_richness <- function(counts, n) {
+  counts <- counts[counts > 0]
+  N <- sum(counts)
+  if (n > N) return(NA_real_)
+  sum(1 - exp(lchoose(N - counts, n) - lchoose(N, n)))
+}
+
+# Shannon H' of a character vector
+.shannon_vec <- function(x) {
+  p <- table(x) / length(x)
+  -sum(p * log(p))
+}
+
+# Mean H' over n_rare random subsamples of n records (without replacement)
+.rare_shannon <- function(x, n, n_rare) {
+  if (n > length(x)) return(c(mean = NA_real_, sd = NA_real_))
+  h <- replicate(n_rare, .shannon_vec(sample(x, n)))
+  c(mean = mean(h), sd = stats::sd(h))
+}
+
+# One record per counted unit (a scan, a bout or an event), in data order
+.expand_records <- function(g) {
+  if (any(abs(g$w - round(g$w)) > 1e-8)) {
+    stop("Rarefaction needs counted records: use scan data, or focal data with ",
+         "measure = \"frequency\". Durations cannot be rarefied.", call. = FALSE)
+  }
+  rep(g$behaviour, round(g$w))
+}
+
 #' Species-typical behavioural diversity
 #'
 #' Calculates behavioural diversity from scan or focal data, by default using
@@ -133,6 +164,27 @@ behaviour_budget <- function(obs, ethogram = NULL, by = "animal",
 #'     budgets; 1 - Bray-Curtis dissimilarity) and \eqn{H'} of the reference.}
 #' }
 #'
+#' **Rarefaction.** \eqn{H'} and richness grow with sample size, so groups
+#' observed for different numbers of scans are not directly comparable
+#' (Brereton & Fernandez 2022). With `rarefy`, every group is also
+#' summarised at a common sample size \eqn{n}:
+#' \describe{
+#'   \item{rarefy_n}{The sample size used.}
+#'   \item{richness_rare}{Expected number of behaviours in \eqn{n} records
+#'     drawn without replacement, calculated exactly (Hurlbert 1971):
+#'     \eqn{\sum_i [1 - \binom{N - N_i}{n} / \binom{N}{n}]}.}
+#'   \item{shannon_rare, shannon_rare_sd}{Mean and standard deviation of
+#'     \eqn{H'} over `n_rare` random subsamples of \eqn{n} records.}
+#' }
+#' `rarefy = "min"` uses the smallest group size; with `rarefy_within`, the
+#' smallest size among groups that share those columns, e.g. the smaller of an
+#' animal's pre- and post-enrichment samples with
+#' `by = c("animal", "period"), rarefy_within = "animal"`. Groups smaller than
+#' \eqn{n} get `NA`. Rarefaction works on counted records (scans, or focal
+#' bouts and events with `measure = "frequency"`), not on durations. Each
+#' group is subsampled from `seed` independently, so a group's value does not
+#' change when other groups are added.
+#'
 #' Confidence intervals (`n_boot > 0`) are percentile bootstrap intervals,
 #' resampling scans (scan data) or bouts (focal data) with replacement within
 #' each group. Successive samples are autocorrelated, so treat these as
@@ -146,8 +198,12 @@ behaviour_budget <- function(obs, ethogram = NULL, by = "animal",
 #' @param n_boot Number of bootstrap resamples (0 = none).
 #' @param boot_unit `"sample"` (scans or bouts) or `"session"`.
 #' @param conf Confidence level.
-#' @param seed Optional random seed for the bootstrap. The user's random
-#'   number state is restored afterwards.
+#' @param rarefy `NULL` (no rarefaction), a sample size, or `"min"`.
+#' @param rarefy_within Columns within which `"min"` is taken (default: all
+#'   groups).
+#' @param n_rare Number of random subsamples for the rarefied \eqn{H'}.
+#' @param seed Optional random seed for the bootstrap and rarefaction. The
+#'   user's random number state is restored afterwards.
 #' @return A data frame with one row per group.
 #' @references Shannon, C. E. (1948). A mathematical theory of communication.
 #'   Bell System Technical Journal 27: 379-423.
@@ -158,8 +214,17 @@ behaviour_budget <- function(obs, ethogram = NULL, by = "animal",
 #'   Miller, L. J., Vicino, G. A., Sheftel, J. & Lauderdale, L. K. (2020).
 #'   Behavioral diversity as a potential indicator of positive animal welfare.
 #'   Animals 10: 1211. \doi{10.3390/ani10071211}
+#'
+#'   Hurlbert, S. H. (1971). The nonconcept of species diversity: a critique
+#'   and alternative parameters. Ecology 52: 577-586. \doi{10.2307/1934145}
+#'
+#'   Brereton, J. E. & Fernandez, E. J. (2022). Investigating unused tools for
+#'   the animal behavioral diversity toolkit. Animals 12: 2984.
+#'   \doi{10.3390/ani12212984}
 #' @examples
 #' behaviour_diversity(example_scans, example_ethogram)
+#' # every animal compared at the smallest animal's sample size
+#' behaviour_diversity(example_scans, example_ethogram, rarefy = "min", seed = 1)
 #' behaviour_diversity(example_focal, example_ethogram, by = NULL)
 #' @export
 behaviour_diversity <- function(obs, ethogram, by = "animal",
@@ -169,7 +234,8 @@ behaviour_diversity <- function(obs, ethogram, by = "animal",
                                 include_recipient = TRUE,
                                 reference = NULL,
                                 n_boot = 0, boot_unit = c("sample", "session"),
-                                conf = 0.95, seed = NULL) {
+                                conf = 0.95, rarefy = NULL, rarefy_within = NULL,
+                                n_rare = 500, seed = NULL) {
   obs <- as_obs(obs)
   eth <- as_ethogram(ethogram)
   sampling <- .choose_sampling(obs, match.arg(sampling))
@@ -203,6 +269,40 @@ behaviour_diversity <- function(obs, ethogram, by = "animal",
   }
   alpha <- (1 - conf) / 2
 
+  rare_n <- NULL
+  if (!is.null(rarefy)) {
+    if (!(is.numeric(rarefy) && length(rarefy) == 1 && rarefy >= 1) && !identical(rarefy, "min")) {
+      stop("rarefy must be NULL, a sample size, or \"min\".", call. = FALSE)
+    }
+    if (sampling == "focal" && measure == "duration") {
+      stop("Rarefaction needs counted records: use scan data, or focal data with ",
+           "measure = \"frequency\". Durations cannot be rarefied.", call. = FALSE)
+    }
+    miss <- setdiff(c(by, rarefy_within), names(d))
+    if (length(miss)) stop("Column(s) not found: ", paste(miss, collapse = ", "), call. = FALSE)
+    if (length(setdiff(rarefy_within, by))) stop("rarefy_within must be among the `by` columns.", call. = FALSE)
+    dd <- if (species_typical_only) d[d$typical, , drop = FALSE] else d
+    dd <- dd[stats::complete.cases(dd[by]), , drop = FALSE]
+    gkey <- if (length(by)) do.call(paste, c(dd[by], sep = "\r")) else rep("all", nrow(dd))
+    sizes <- tapply(dd$w, gkey, sum)
+    if (identical(rarefy, "min")) {
+      if (length(rarefy_within)) {
+        wkey <- tapply(do.call(paste, c(dd[rarefy_within], sep = "\r")), gkey, `[`, 1)
+        mins <- tapply(sizes, wkey[names(sizes)], min)
+        rare_n <- stats::setNames(as.numeric(mins[wkey[names(sizes)]]), names(sizes))
+      } else {
+        rare_n <- stats::setNames(rep(min(sizes), length(sizes)), names(sizes))
+      }
+    } else {
+      rare_n <- stats::setNames(rep(floor(rarefy), length(sizes)), names(sizes))
+    }
+    small <- sum(sizes < rare_n[names(sizes)])
+    if (small) {
+      warning(small, " group(s) have fewer records than the rarefaction size; ",
+              "their rarefied values are NA.", call. = FALSE)
+    }
+  }
+
   fun <- function(g) {
     prop_abn <- sum(g$w[!g$typical]) / sum(g$w)
     gg <- if (species_typical_only) g[g$typical, , drop = FALSE] else g
@@ -234,6 +334,17 @@ behaviour_diversity <- function(obs, ethogram, by = "animal",
       res$shannon_lo <- q[1, "shannon"]; res$shannon_hi <- q[2, "shannon"]
       res$evenness_lo <- q[1, "evenness"]; res$evenness_hi <- q[2, "evenness"]
       res$simpson_lo <- q[1, "simpson"]; res$simpson_hi <- q[2, "simpson"]
+    }
+    if (!is.null(rare_n)) {
+      key <- if (length(by)) do.call(paste, c(g[1, by, drop = FALSE], sep = "\r")) else "all"
+      n <- if (key %in% names(rare_n)) rare_n[[key]] else 1
+      x <- .expand_records(gg)
+      if (length(x) == 0) n <- NA_real_
+      res$rarefy_n <- n
+      res$richness_rare <- if (is.na(n)) NA_real_ else .rare_richness(table(x), n)
+      rs <- if (is.na(n)) c(mean = NA_real_, sd = NA_real_) else .with_seed(seed, .rare_shannon(x, n, n_rare))
+      res$shannon_rare <- rs[["mean"]]
+      res$shannon_rare_sd <- rs[["sd"]]
     }
     res
   }
@@ -272,4 +383,71 @@ event_rates <- function(obs, by = "animal") {
     data.frame(behaviour = names(v), count = as.numeric(v), hours_observed = h,
                rate_per_hour = as.numeric(v) / h, stringsAsFactors = FALSE)
   })
+}
+
+#' Rarefaction curves for behavioural diversity
+#'
+#' Expected behavioural richness and Shannon \eqn{H'} at increasing sample
+#' sizes, for each group. A curve that levels off shows that sampling was
+#' long enough to capture the repertoire; one still rising at the observed
+#' sample size means richness and \eqn{H'} are underestimated, and groups
+#' should be compared at a common size (see `rarefy` in
+#' [behaviour_diversity()]). Richness is calculated exactly (Hurlbert 1971);
+#' \eqn{H'} is the mean over `n_rare` random subsamples without replacement.
+#'
+#' @inheritParams behaviour_diversity
+#' @param sizes Sample sizes to evaluate. Default: `steps` evenly spaced
+#'   sizes from 1 to each group's total.
+#' @param steps Number of sizes when `sizes` is `NULL`.
+#' @param n_rare Number of random subsamples per size for \eqn{H'}.
+#' @return A long data frame (ready for ggplot2) with grouping columns, `n`,
+#'   `richness`, `shannon`, `shannon_sd` and `observed` (`TRUE` at the
+#'   group's full sample size).
+#' @references Hurlbert, S. H. (1971). The nonconcept of species diversity: a
+#'   critique and alternative parameters. Ecology 52: 577-586.
+#'   \doi{10.2307/1934145}
+#' @examples
+#' rc <- rarefaction_curve(example_scans, example_ethogram, steps = 10, n_rare = 50, seed = 1)
+#' head(rc)
+#' \donttest{
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
+#'   ggplot(rc, aes(n, richness, colour = animal)) + geom_line()
+#' }
+#' }
+#' @export
+rarefaction_curve <- function(obs, ethogram, by = "animal",
+                              sampling = c("auto", "scan", "focal"),
+                              measure = c("frequency", "duration"),
+                              species_typical_only = TRUE, include_recipient = TRUE,
+                              sizes = NULL, steps = 20, n_rare = 200, seed = NULL) {
+  obs <- as_obs(obs)
+  eth <- as_ethogram(ethogram)
+  sampling <- .choose_sampling(obs, match.arg(sampling))
+  measure <- match.arg(measure)
+  if (sampling == "focal" && measure == "duration") {
+    stop("Rarefaction needs counted records: use measure = \"frequency\" for focal data.", call. = FALSE)
+  }
+  d <- .prep_weights(obs, sampling, measure, include_recipient)
+  d <- d[!d$oos, , drop = FALSE]
+  m <- .match_ethogram(d, eth)
+  d$behaviour[!is.na(m)] <- eth$behaviour[m[!is.na(m)]]
+  d$typical <- !is.na(m) & eth$species_typical[ifelse(is.na(m), 1, m)]
+  if (species_typical_only) d <- d[d$typical, , drop = FALSE]
+  fun <- function(g) {
+    x <- .expand_records(g)
+    N <- length(x)
+    if (N == 0) return(NULL)
+    ns <- if (is.null(sizes)) unique(round(seq(1, N, length.out = steps))) else sort(unique(sizes))
+    ns <- ns[ns >= 1 & ns <= N]
+    tab <- table(x)
+    rs <- .with_seed(seed, t(vapply(ns, function(n) .rare_shannon(x, n, n_rare), numeric(2))))
+    data.frame(n = ns,
+               richness = vapply(ns, function(n) .rare_richness(tab, n), numeric(1)),
+               shannon = rs[, "mean"], shannon_sd = rs[, "sd"],
+               observed = ns == N)
+  }
+  out <- .by_groups(d, by, fun)
+  attr(out, "sampling") <- sampling
+  out
 }
